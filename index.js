@@ -34,8 +34,19 @@ app.use(function (req, res, next) {
 app.get('/all', (req, res) => {
     Sticker.find().select({ "_id": 0, "__v": 0 }).exec((err, stickers) => {
         if (err) console.error(err);
+        stickers.sort(compareSticker);
         res.send(stickers);
     });
 })
 
 app.listen(process.env.PORT, () => console.log(`App is listening on port ${process.env.PORT}.`));
+
+function compareSticker(stickerA, stickerB) {
+    if (stickerA.keyword < stickerB.keyword) {
+        return -1;
+    } else if (stickerA.keyword > stickerB.keyword) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
