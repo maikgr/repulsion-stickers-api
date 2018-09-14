@@ -35,6 +35,7 @@ const stickerSchema = new Schema({
 });
 const Sticker = mongoose.model('stickers', stickerSchema);
 
+app.options('/all', cors(corsOptions));
 app.get('/all', cors(corsOptions), (req, res) => {
     Sticker.find().select({
         "_id": 0,
