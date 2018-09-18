@@ -59,6 +59,8 @@ function update (id, sticker) {
         url: sticker.url,
         useCount: sticker.useCount,
         upload: sticker.upload
+    }, {
+        new: true
     }).exec();
 }
 
