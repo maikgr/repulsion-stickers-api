@@ -31,6 +31,10 @@ function getByKeyword (keyword) {
     return Sticker.findOne({ keyword: keyword }).exec();
 }
 
+function getById (id) {
+    return Sticker.findById(id).exec();
+}
+
 function add (keyword, url, uploaderId, uploaderUsername) {
     let newSticker = new Sticker({
         keyword: keyword,
@@ -72,13 +76,14 @@ function updateUseCount (keyword, addCount = 1) {
     });
 }
 
-function remove (keyword) {
-    return Sticker.findOneAndRemove({ keyword: keyword }).exec();
+function remove (id) {
+    return Sticker.findByIdAndRemove(id).exec();
 }
 
 module.exports = {
     getAll: getAll,
     getByKeyword: getByKeyword,
+    getById: getById,
     add: add,
     update: update,
     updateKeyword: updateKeyword,
