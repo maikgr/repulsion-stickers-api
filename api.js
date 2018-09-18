@@ -4,8 +4,7 @@ const bodyParser = require('body-parser');
 const Joi = require('joi');
 const ExpressJoi = require('express-joi-validator');
 const stickerService = require('./services/sticker-service');
-const SuccessResult = require('./models/success-result').SuccessResult;
-const ErrorResult = require('./models/error-result').ErrorResult;
+const responseResult = require('./models/response-result');
 const imageService = require('./services/image-service');
 
 const app = express();
@@ -42,22 +41,55 @@ app.get('/api/stickers/:keyword', (req, res) => {
 });
 
 app.post('/api/stickers', ExpressJoi(stickerSchema), (req, res) => {
-    const imageUrl = imageService.upload(req.body.url);
-    if (!imageUrl) {
-        badRequest(res, 'Invalid image url');
-    }
-    stickerService
-        .add(req.body.keyword, imageUrl, req.body.upload.id, req.body.upload.username)
+    imageService
+        .upload(req.body.url)
+        .then((imageUrl) => {
+            if (!imageUrl) {
+                return badRequest(res, 'Invalid image url');
+            }
+
+            return stickerService.add(req.body.keyword, imageUrl, req.body.upload.id, req.body.upload.username);
+        })    
         .then(() => {
-            getSticker(res, req.body.keyword);
+            return getSticker(res, req.body.keyword);
+        })
+        .catch((error) => {
+            return badRequest(res, error.message.message);
+        });
+});
+
+app.put('api/stickers/:id', ExpressJoi(stickerSchema), (req, res) => {
+    stickerService
+        .update(req.path.id, req.body)
+        .then((sticker) => {
+            if (sticker) {
+                okResult(res, sticker);
+            }
+            else {
+                notFound(res, req.path.id);
+            }
         })
         .catch((error) => {
             badRequest(res, error.message.message);
         });
 });
 
-app.put('api/stickers/:id', ExpressJoi(stickerSchema), (req, res) => {
-    res.send(req.params.id);
+app.delete('api/stickers/:id', (req, res) => {
+    stickerService
+        .getById(req.path.id)
+        .then((sticker) => {
+            if (!sticker) {
+                return notFound(req.path.id);
+            }
+            
+            return stickerService.remove(req.path.id);
+        })
+        .then(() => {
+            return res.status(204).send();
+        })
+        .catch((error) => {
+            return badRequest(res, error.message.message);
+        });
 });
 
 function getSticker (res, keyword) {
@@ -67,7 +99,7 @@ function getSticker (res, keyword) {
             if (sticker) {
                 return okResult(res, parseSticker(sticker));
             } else {
-                return badRequest(res, `No sticker with keyword ${keyword} found.`);
+                return notFound(res, keyword);
             };
         })
         .catch((error) => {
@@ -86,16 +118,16 @@ function getAllStickers (res) {
         });
 }
 
-function validateImageUrl (res, url) {
-    
-}
-
 function okResult (res, result) {
-    return res.status(200).send(new SuccessResult(result));
+    return res.status(200).send(responseResult.okResult(result));
 }
 
 function badRequest (res, message) {
-    return res.status(400).send(new ErrorResult(message));
+    return res.status(400).send(responseResult.badRequest(message));
+}
+
+function notFound (res, resourceKey) {
+    return res.status(404).send(responseResult.notFound(resourceKey));
 }
 
 function parseSticker (sticker) {
