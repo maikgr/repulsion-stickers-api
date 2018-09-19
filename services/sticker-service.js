@@ -28,11 +28,15 @@ function getAll () {
 }
 
 function getByKeyword (keyword) {
-    return Sticker.findOne({ keyword: keyword }).exec();
+    return Sticker.findOne({ keyword: { '$regex': '^' + keyword + '$', '$options': 'i' } }).exec();
 }
 
 function getById (id) {
     return Sticker.findById(id).exec();
+}
+
+function search (query) {
+    return Sticker.find({ keyword: { '$regex': query, '$options' : 'i'} }).exec();
 }
 
 function add (keyword, url, uploaderId, uploaderUsername) {
@@ -64,20 +68,6 @@ function update (id, sticker) {
     }).exec();
 }
 
-function updateKeyword (oldKeyword, newKeyword) {
-    return Sticker.findOneAndUpdate({ keyword: oldKeyword }, { keyword: newKeyword }).exec();
-}
-
-function updateImage (keyword, url) {
-    return Sticker.findOneAndUpdate({ keyword: keyword }, { url: url }).exec();
-}
-
-function updateUseCount (keyword, addCount = 1) {
-    return getByKeyword(keyword).then((sticker) => {
-        return Sticker.findOneAndUpdate({ _id: sticker._id }, { useCount: sticker.useCount + addCount }).exec();
-    });
-}
-
 function remove (id) {
     return Sticker.findByIdAndRemove(id).exec();
 }
@@ -88,8 +78,6 @@ module.exports = {
     getById: getById,
     add: add,
     update: update,
-    updateKeyword: updateKeyword,
-    updateImage: updateImage,
-    updateUseCount: updateUseCount,
+    search: search,
     remove: remove
 }

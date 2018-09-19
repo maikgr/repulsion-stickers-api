@@ -33,22 +33,22 @@ const stickerSchema = {
 
 app.use(cors(), bodyParser.json());
 
-app.get('/all', (req, res) => {
-    res.redirect('/api/stickers');
+app.get('/api/stickers', (req, res) => {
+    res.redirect('api/stickers/all');
 });
 
-app.get('/api/stickers', (req, res) => {
+app.get('/api/stickers/all', (req, res) => {
     stickerService.getAll()
         .then((stickers) => {
             const stickerResult = stickers.map(s => parseSticker(s)).sort(compareSticker);
             return okResult(res, stickerResult);
         })
         .catch((error) => {
-            return badRequest(res, error.message.message);
+            return badRequest(res, error.statusMessage);
         });
 });
 
-app.get('/api/stickers/:keyword', (req, res) => {
+app.get('/api/stickers/keyword/:keyword', (req, res) => {
     stickerService
         .getByKeyword(req.params.keyword)
         .then((sticker) => {
@@ -59,8 +59,30 @@ app.get('/api/stickers/:keyword', (req, res) => {
             };
         })
         .catch((error) => {
-            return badRequest(res, error.message.message);
+            return badRequest(res, error.statusMessage);
         });
+});
+
+app.get('/api/stickers/search', (req, res) => {
+    const query = req.query.keyword;
+    const minCharacterLength = 3;
+    if(!query || query.length < minCharacterLength) {
+        return badRequest(res, `Please provide a search query with a minimum of ${minCharacterLength} characters.`);
+    }
+
+    stickerService
+        .getAll()
+        .then((stickers) => {
+            const result = stickers.filter(sticker => sticker.keyword.includes(query));
+            if (!result || result.length === 0) {
+                return notFound(res, query);
+            }
+
+            return okResult(res, result.map(sti => parseSticker(sti)));
+        })
+        .catch((error) => {
+            return badRequest(res, error.statusMessage);
+        })
 });
 
 app.post('/api/stickers', ExpressJoi(stickerSchema), (req, res) => {
@@ -77,7 +99,7 @@ app.post('/api/stickers', ExpressJoi(stickerSchema), (req, res) => {
             return created(res, sticker);
         })
         .catch((error) => {
-            return badRequest(res, error.message.message);
+            return badRequest(res, error.statusMessage);
         });
 });
 
@@ -93,7 +115,7 @@ app.put('/api/stickers/:id', ExpressJoi(stickerSchema), (req, res) => {
             }
         })
         .catch((error) => {
-            return badRequest(res, error.message.message);
+            return badRequest(res, error.statusMessage);
         });
 });
 
@@ -111,7 +133,7 @@ app.delete('/api/stickers/:id', (req, res) => {
             return res.status(204).send();
         })
         .catch((error) => {
-            return badRequest(res, error.message.message);
+            return badRequest(res, error.statusMessage);
         });
 });
 
