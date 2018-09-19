@@ -10,6 +10,15 @@ module.exports.okResult = function (data) {
     }
 }
 
+module.exports.created = function (data) {
+    return {
+        kind: 'VariableZ#stickers',
+        code: 204,
+        requestedAt: moment().format(),
+        data: data
+    }
+}
+
 module.exports.badRequest = function (message) {
     return {
         code: 400,

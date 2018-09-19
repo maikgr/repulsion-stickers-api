@@ -23,6 +23,7 @@ const stickerSchema = {
     body: {
         keyword: Joi.string().lowercase().min(3).required(),
         url: Joi.string().uri().required(),
+        useCount: Joi.number().min(0).optional(),
         upload: {
             id: Joi.number().optional(),
             username: Joi.string().optional()
@@ -33,66 +34,17 @@ const stickerSchema = {
 app.use(cors(), bodyParser.json());
 
 app.get('/api/stickers', (req, res) => {
-    getAllStickers(res);
+    stickerService.getAll()
+        .then((stickers) => {
+            const stickerResult = stickers.map(s => parseSticker(s)).sort(compareSticker);
+            return okResult(res, stickerResult);
+        })
+        .catch((error) => {
+            return badRequest(res, error.message.message);
+        });
 });
 
 app.get('/api/stickers/:keyword', (req, res) => {
-    getSticker(res, req.params.keyword);
-});
-
-app.post('/api/stickers', ExpressJoi(stickerSchema), (req, res) => {
-    imageService
-        .upload(req.body.url)
-        .then((imageUrl) => {
-            if (!imageUrl) {
-                return badRequest(res, 'Invalid image url');
-            }
-
-            return stickerService.add(req.body.keyword, imageUrl, req.body.upload.id, req.body.upload.username);
-        })    
-        .then(() => {
-            return getSticker(res, req.body.keyword);
-        })
-        .catch((error) => {
-            return badRequest(res, error.message.message);
-        });
-});
-
-app.put('api/stickers/:id', ExpressJoi(stickerSchema), (req, res) => {
-    stickerService
-        .update(req.path.id, req.body)
-        .then((sticker) => {
-            if (sticker) {
-                okResult(res, sticker);
-            }
-            else {
-                notFound(res, req.path.id);
-            }
-        })
-        .catch((error) => {
-            badRequest(res, error.message.message);
-        });
-});
-
-app.delete('api/stickers/:id', (req, res) => {
-    stickerService
-        .getById(req.path.id)
-        .then((sticker) => {
-            if (!sticker) {
-                return notFound(req.path.id);
-            }
-            
-            return stickerService.remove(req.path.id);
-        })
-        .then(() => {
-            return res.status(204).send();
-        })
-        .catch((error) => {
-            return badRequest(res, error.message.message);
-        });
-});
-
-function getSticker (res, keyword) {
     stickerService
         .getByKeyword(keyword)
         .then((sticker) => {
@@ -105,21 +57,66 @@ function getSticker (res, keyword) {
         .catch((error) => {
             return badRequest(res, error.message.message);
         });
-}
+});
 
-function getAllStickers (res) {
-    stickerService.getAll()
-        .then((stickers) => {
-            const stickerResult = stickers.map(s => parseSticker(s)).sort(compareSticker);
-            return okResult(res, stickerResult);
+app.post('/api/stickers', ExpressJoi(stickerSchema), (req, res) => {
+    imageService
+        .upload(req.body.url)
+        .then((imageUrl) => {
+            if (!imageUrl) {
+                return badRequest(res, 'Invalid image url');
+            }
+
+            return stickerService.add(req.body.keyword, imageUrl, req.body.upload.id, req.body.upload.username);
+        })    
+        .then((sticker) => {
+            return created(res, sticker);
         })
         .catch((error) => {
             return badRequest(res, error.message.message);
         });
-}
+});
+
+app.put('/api/stickers/:id', ExpressJoi(stickerSchema), (req, res) => {
+    stickerService
+        .update(req.params.id, req.body)
+        .then((sticker) => {
+            if (sticker) {
+                okResult(res, parseSticker(sticker));
+            }
+            else {
+                notFound(res, req.params.id);
+            }
+        })
+        .catch((error) => {
+            badRequest(res, error.message.message);
+        });
+});
+
+app.delete('/api/stickers/:id', (req, res) => {
+    stickerService
+        .getById(req.params.id)
+        .then((sticker) => {
+            if (!sticker) {
+                return notFound(req.params.id);
+            }
+            
+            return stickerService.remove(req.params.id);
+        })
+        .then(() => {
+            return res.status(204).send();
+        })
+        .catch((error) => {
+            return badRequest(res, error.message.message);
+        });
+});
 
 function okResult (res, result) {
     return res.status(200).send(responseResult.okResult(result));
+}
+
+function created (res, result) {
+    return res.status(204).send(responseResult.created(result));
 }
 
 function badRequest (res, message) {
@@ -152,4 +149,5 @@ function compareSticker (stickerA, stickerB) {
     }
 }
 
-app.listen(process.env.PORT, () => console.log(`App is listening on port ${process.env.PORT}.`));
+const PORT = process.env.PORT || 8081
+app.listen(PORT, () => console.log(`App is listening on port ${PORT}.`));
