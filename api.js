@@ -33,6 +33,10 @@ const stickerSchema = {
 
 app.use(cors(), bodyParser.json());
 
+app.get('/all', (req, res) => {
+    res.redirect('/api/stickers');
+});
+
 app.get('/api/stickers', (req, res) => {
     stickerService.getAll()
         .then((stickers) => {
@@ -46,12 +50,12 @@ app.get('/api/stickers', (req, res) => {
 
 app.get('/api/stickers/:keyword', (req, res) => {
     stickerService
-        .getByKeyword(keyword)
+        .getByKeyword(req.params.keyword)
         .then((sticker) => {
             if (sticker) {
                 return okResult(res, parseSticker(sticker));
             } else {
-                return notFound(res, keyword);
+                return notFound(res, req.params.keyword);
             };
         })
         .catch((error) => {
@@ -82,14 +86,14 @@ app.put('/api/stickers/:id', ExpressJoi(stickerSchema), (req, res) => {
         .update(req.params.id, req.body)
         .then((sticker) => {
             if (sticker) {
-                okResult(res, parseSticker(sticker));
+                return okResult(res, parseSticker(sticker));
             }
             else {
-                notFound(res, req.params.id);
+                return notFound(res, req.params.id);
             }
         })
         .catch((error) => {
-            badRequest(res, error.message.message);
+            return badRequest(res, error.message.message);
         });
 });
 
@@ -112,19 +116,19 @@ app.delete('/api/stickers/:id', (req, res) => {
 });
 
 function okResult (res, result) {
-    return res.status(200).send(responseResult.okResult(result));
+    return res.status(200).json(responseResult.okResult(result));
 }
 
 function created (res, result) {
-    return res.status(204).send(responseResult.created(result));
+    return res.status(204).json(responseResult.created(result));
 }
 
 function badRequest (res, message) {
-    return res.status(400).send(responseResult.badRequest(message));
+    return res.status(400).json(responseResult.badRequest(message));
 }
 
 function notFound (res, resourceKey) {
-    return res.status(404).send(responseResult.notFound(resourceKey));
+    return res.status(404).json(responseResult.notFound(resourceKey));
 }
 
 function parseSticker (sticker) {
