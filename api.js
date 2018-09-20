@@ -8,7 +8,7 @@ const responseResult = require('./models/response-result');
 const imageService = require('./services/image-service');
 
 const app = express();
-const sitelist = ['https://repulsion-stickers-site.herokuapp.com, http://localhost:8080'];
+const sitelist = ['http://varuzu.azurewebsites.net/, https://varuzu.azurewebsites.net, http://localhost:8080'];
 const corsOptions = {
     origin: function (origin, callback) {
         if (sitelist.includes(origin)) {
@@ -135,6 +135,12 @@ app.delete('/api/stickers/:id', (req, res) => {
         .catch((error) => {
             return badRequest(res, error.statusMessage);
         });
+});
+
+app.use(function (err, req, res, next) {
+    if (err.isBoom) {
+        return badRequest(res, err.data[0].message.toString());
+    }
 });
 
 function okResult (res, result) {
