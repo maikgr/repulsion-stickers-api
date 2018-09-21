@@ -86,7 +86,7 @@ app.get('/api/stickers/search', (req, res) => {
 });
 
 app.post('/api/stickers', ExpressJoi(stickerSchema), (req, res) => {
-    stickerSchema
+    stickerService
         .getAll()
         .then((stickers) => {
             const sticker = stickers.find(s => s.keyword === req.body.keyword);
@@ -110,7 +110,7 @@ app.post('/api/stickers', ExpressJoi(stickerSchema), (req, res) => {
 });
 
 app.put('/api/stickers/:id', ExpressJoi(stickerSchema), (req, res) => {
-    stickerSchema
+    stickerService
         .getAll()
         .then((stickers) => {
             const sticker = stickers.find(s => s.keyword === req.body.keyword);
