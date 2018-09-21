@@ -51,10 +51,11 @@ function add (keyword, url, uploaderId, uploaderUsername) {
         }
     });
 
-    return newSticker.save((err) => {
+    newSticker.save((err) => {
         if (err) throw err;
-        return newSticker;
     })
+
+    return newSticker;
 }
 
 function update (id, sticker) {

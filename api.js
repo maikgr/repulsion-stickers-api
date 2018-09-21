@@ -91,12 +91,12 @@ app.post('/api/stickers', ExpressJoi(stickerSchema), (req, res) => {
         .then((stickers) => {
             const sticker = stickers.find(s => s.keyword === req.body.keyword);
             if (sticker) {
-                return badRequest(res, `Keyword ${req.body.keyword} is already taken.`)
+                throw new Error(`Keyword ${req.body.keyword} is already taken.`);
             }
             return stickerService.add(req.body.keyword, req.body.url, req.body.upload.id, req.body.upload.username);
         })
         .then((sticker) => {
-            return created(res, sticker);
+            return created(res, parseSticker(sticker));
         })
         .catch((error) => {
             return badRequest(res, error.statusMessage);
@@ -107,7 +107,7 @@ app.put('/api/stickers/:id', ExpressJoi(stickerSchema), (req, res) => {
     stickerService
         .getByKeyword(req.body.keyword)
         .then((sticker) => {
-            if (sticker.id !== req.params.id) {
+            if (sticker && sticker.id !== req.params.id) {
                 return badRequest(res, `Keyword ${req.body.keyword} is already taken.`)
             }
             return stickerService.update(req.params.id, req.body);
@@ -121,7 +121,7 @@ app.put('/api/stickers/:id', ExpressJoi(stickerSchema), (req, res) => {
             }
         })
         .catch((error) => {
-            return badRequest(res, error.statusMessage);
+            return badRequest(res, error.statusMessage || error.message);
         });
 });
 
@@ -154,7 +154,7 @@ function okResult (res, result) {
 }
 
 function created (res, result) {
-    return res.status(204).json(responseResult.created(result));
+    return res.status(201).json(responseResult.created(result));
 }
 
 function badRequest (res, message) {
