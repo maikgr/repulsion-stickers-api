@@ -111,10 +111,9 @@ app.post('/api/stickers', ExpressJoi(stickerSchema), (req, res) => {
 
 app.put('/api/stickers/:id', ExpressJoi(stickerSchema), (req, res) => {
     stickerService
-        .getAll()
-        .then((stickers) => {
-            const sticker = stickers.find(s => s.keyword === req.body.keyword);
-            if (sticker) {
+        .getByKeyword(req.body.keyword)
+        .then((sticker) => {
+            if (sticker.id !== req.params.id) {
                 return badRequest(res, `Keyword ${req.body.keyword} is already taken.`)
             }
             return stickerService.update(req.params.id, req.body);
