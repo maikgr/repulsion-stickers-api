@@ -93,13 +93,7 @@ app.post('/api/stickers', ExpressJoi(stickerSchema), (req, res) => {
             if (sticker) {
                 return badRequest(res, `Keyword ${req.body.keyword} is already taken.`)
             }
-            return imageService.upload(req.body.url);
-        })
-        .then((imageUrl) => {
-            if (!imageUrl) {
-                return badRequest(res, 'Invalid image url');
-            }
-            return stickerService.add(req.body.keyword, imageUrl, req.body.upload.id, req.body.upload.username);
+            return stickerService.add(req.body.keyword, req.body.url, req.body.upload.id, req.body.upload.username);
         })
         .then((sticker) => {
             return created(res, sticker);
