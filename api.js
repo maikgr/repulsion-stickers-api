@@ -86,15 +86,21 @@ app.get('/api/stickers/search', (req, res) => {
 });
 
 app.post('/api/stickers', ExpressJoi(stickerSchema), (req, res) => {
-    imageService
-        .upload(req.body.url)
+    stickerSchema
+        .getAll()
+        .then((stickers) => {
+            const sticker = stickers.find(s => s.keyword === req.body.keyword);
+            if (sticker) {
+                return badRequest(res, `Keyword ${req.body.keyword} is already taken.`)
+            }
+            return imageService.upload(req.body.url);
+        })
         .then((imageUrl) => {
             if (!imageUrl) {
                 return badRequest(res, 'Invalid image url');
             }
-
             return stickerService.add(req.body.keyword, imageUrl, req.body.upload.id, req.body.upload.username);
-        })    
+        })
         .then((sticker) => {
             return created(res, sticker);
         })
@@ -104,8 +110,15 @@ app.post('/api/stickers', ExpressJoi(stickerSchema), (req, res) => {
 });
 
 app.put('/api/stickers/:id', ExpressJoi(stickerSchema), (req, res) => {
-    stickerService
-        .update(req.params.id, req.body)
+    stickerSchema
+        .getAll()
+        .then((stickers) => {
+            const sticker = stickers.find(s => s.keyword === req.body.keyword);
+            if (sticker) {
+                return badRequest(res, `Keyword ${req.body.keyword} is already taken.`)
+            }
+            return stickerService.update(req.params.id, req.body);
+        })
         .then((sticker) => {
             if (sticker) {
                 return okResult(res, parseSticker(sticker));
