@@ -26,6 +26,7 @@ const stickerSchema = {
         useCount: Joi.number().min(0).optional(),
         upload: {
             id: Joi.number().optional(),
+            date: Joi.date().optional(),
             username: Joi.string().optional()
         }
     }
@@ -93,7 +94,7 @@ app.post('/api/stickers', ExpressJoi(stickerSchema), (req, res) => {
             if (sticker) {
                 throw new Error(`Keyword ${req.body.keyword} is already taken.`);
             }
-            return stickerService.add(req.body.keyword, req.body.url, req.body.upload.id, req.body.upload.username);
+            return stickerService.add(req.body.keyword, req.body.url.toLowerCase(), req.body.upload.id, req.body.upload.username);
         })
         .then((sticker) => {
             return created(res, parseSticker(sticker));
