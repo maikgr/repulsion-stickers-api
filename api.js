@@ -5,7 +5,6 @@ const Joi = require('joi');
 const ExpressJoi = require('express-joi-validator');
 const stickerService = require('./services/sticker-service');
 const responseResult = require('./models/response-result');
-const imageService = require('./services/image-service');
 
 const app = express();
 const sitelist = ['http://varuzu.azurewebsites.net/, https://varuzu.azurewebsites.net, http://localhost:8080'];
@@ -94,7 +93,7 @@ app.post('/api/stickers', ExpressJoi(stickerSchema), (req, res) => {
             if (sticker) {
                 throw new Error(`Keyword ${req.body.keyword} is already taken.`);
             }
-            return stickerService.add(req.body.keyword, req.body.url.toLowerCase(), req.body.upload.id, req.body.upload.username);
+            return stickerService.add(req.body.keyword, req.body.url, req.body.upload.id, req.body.upload.username);
         })
         .then((sticker) => {
             return created(res, parseSticker(sticker));
