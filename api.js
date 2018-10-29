@@ -23,6 +23,7 @@ const stickerSchema = {
         keyword: Joi.string().lowercase().min(3).required(),
         url: Joi.string().uri().required(),
         useCount: Joi.number().min(0).optional(),
+        buffer: Joi.any().optional(),
         upload: {
             id: Joi.number().optional(),
             date: Joi.date().optional(),

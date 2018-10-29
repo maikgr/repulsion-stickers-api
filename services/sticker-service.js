@@ -14,6 +14,7 @@ const stickerSchema = new Schema({
     keyword: String,
     url: String,
     useCount: Number,
+    buffer: Buffer,
     upload: {
         id: String,
         username: String,
@@ -23,23 +24,23 @@ const stickerSchema = new Schema({
 
 const Sticker = mongoose.model('stickers', stickerSchema);
 
-function getAll () {
+module.exports.getAll = function () {
     return Sticker.find().exec();
 }
 
-function getByKeyword (keyword) {
+module.exports.getByKeyword = function (keyword) {
     return Sticker.findOne({ keyword: { '$regex': '^' + keyword + '$', '$options': 'i' } }).exec();
 }
 
-function getById (id) {
+module.exports.getById = function (id) {
     return Sticker.findById(id).exec();
 }
 
-function search (query) {
+module.exports.search = function (query) {
     return Sticker.find({ keyword: { '$regex': query, '$options' : 'i'} }).exec();
 }
 
-function add (keyword, url, uploaderId, uploaderUsername) {
+module.exports.add = function (keyword, url, uploaderId, uploaderUsername) {
     let newSticker = new Sticker({
         keyword: keyword,
         url: url,
@@ -58,27 +59,18 @@ function add (keyword, url, uploaderId, uploaderUsername) {
     return newSticker;
 }
 
-function update (id, sticker) {
+module.exports.update = function (id, sticker) {
     return Sticker.findByIdAndUpdate(id, {
         keyword: sticker.keyword,
         url: sticker.url,
         useCount: sticker.useCount,
+        buffer: sticker.buffer,
         upload: sticker.upload
     }, {
         new: true
     }).exec();
 }
 
-function remove (id) {
+module.exports.remove = function (id) {
     return Sticker.findByIdAndRemove(id).exec();
-}
-
-module.exports = {
-    getAll: getAll,
-    getByKeyword: getByKeyword,
-    getById: getById,
-    add: add,
-    update: update,
-    search: search,
-    remove: remove
 }
