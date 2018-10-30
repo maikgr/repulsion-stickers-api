@@ -34,10 +34,6 @@ const stickerSchema = {
 
 app.use(cors(), bodyParser.json());
 
-app.get('/api/stickers', (req, res) => {
-    res.redirect('api/stickers/all');
-});
-
 app.get('/api/stickers/all', (req, res) => {
     stickerService.getAll()
         .then((stickers) => {
@@ -109,7 +105,7 @@ app.put('/api/stickers/:id', ExpressJoi(stickerSchema), (req, res) => {
         .getByKeyword(req.body.keyword)
         .then((sticker) => {
             if (sticker && sticker.id !== req.params.id) {
-                return badRequest(res, `Keyword ${req.body.keyword} is already taken.`)
+                return badRequest(res, `Keyword ${req.body.keyword} is not found.`)
             }
             return stickerService.update(req.params.id, req.body);
         })
@@ -131,9 +127,8 @@ app.delete('/api/stickers/:id', (req, res) => {
         .getById(req.params.id)
         .then((sticker) => {
             if (!sticker) {
-                return notFound(req.params.id);
+                return notFound(res, req.params.id);
             }
-            
             return stickerService.remove(req.params.id);
         })
         .then(() => {
@@ -171,6 +166,7 @@ function parseSticker (sticker) {
         id: sticker._id,
         keyword: sticker.keyword,
         url: sticker.url,
+        buffer: sticker.buffer,
         useCount: sticker.useCount,
         upload: sticker.upload
     };
