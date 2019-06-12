@@ -7,7 +7,7 @@ const stickerService = require('./services/sticker-service');
 const responseResult = require('./models/response-result');
 
 const app = express();
-const sitelist = ['http://varuzu.azurewebsites.net/, https://varuzu.azurewebsites.net, http://localhost:8080'];
+const sitelist = process.env.CLIENTS.split(';') 
 const corsOptions = {
     origin: function (origin, callback) {
         if (sitelist.includes(origin)) {
@@ -62,7 +62,7 @@ app.get('/api/stickers/keyword/:keyword', (req, res) => {
 
 app.get('/api/stickers/search', (req, res) => {
     const query = req.query.keyword;
-    const minCharacterLength = 3;
+    const minCharacterLength = 2;
     if(!query || query.length < minCharacterLength) {
         return badRequest(res, `Please provide a search query with a minimum of ${minCharacterLength} characters.`);
     }
@@ -75,7 +75,7 @@ app.get('/api/stickers/search', (req, res) => {
                 return notFound(res, query);
             }
 
-            return okResult(res, result.map(sti => parseSticker(sti)));
+            return okResult(res, result.map(s => parseSticker(s)));
         })
         .catch((error) => {
             return badRequest(res, error.statusMessage);
