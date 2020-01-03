@@ -13,7 +13,7 @@ module.exports.okResult = function (data) {
 module.exports.created = function (data) {
     return {
         kind: 'VariableZ#stickers',
-        code: 204,
+        code: 201,
         requestedAt: moment().format(),
         data: data
     }

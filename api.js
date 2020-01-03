@@ -5,10 +5,9 @@ const Joi = require('joi');
 const ExpressJoi = require('express-joi-validator');
 const stickerService = require('./services/sticker-service');
 const responseResult = require('./models/response-result');
-const imageService = require('./services/image-service');
 
 const app = express();
-const sitelist = ['https://repulsion-stickers-site.herokuapp.com, http://localhost:8080'];
+const sitelist = process.env.CLIENTS.split(';') 
 const corsOptions = {
     origin: function (origin, callback) {
         if (sitelist.includes(origin)) {
@@ -24,8 +23,10 @@ const stickerSchema = {
         keyword: Joi.string().lowercase().min(3).required(),
         url: Joi.string().uri().required(),
         useCount: Joi.number().min(0).optional(),
+        buffer: Joi.any().optional(),
         upload: {
             id: Joi.number().optional(),
+            date: Joi.date().optional(),
             username: Joi.string().optional()
         }
     }
@@ -33,22 +34,18 @@ const stickerSchema = {
 
 app.use(cors(), bodyParser.json());
 
-app.get('/all', (req, res) => {
-    res.redirect('/api/stickers');
-});
-
-app.get('/api/stickers', (req, res) => {
+app.get('/api/stickers/all', (req, res) => {
     stickerService.getAll()
         .then((stickers) => {
             const stickerResult = stickers.map(s => parseSticker(s)).sort(compareSticker);
             return okResult(res, stickerResult);
         })
         .catch((error) => {
-            return badRequest(res, error.message.message);
+            return badRequest(res, error.statusMessage);
         });
 });
 
-app.get('/api/stickers/:keyword', (req, res) => {
+app.get('/api/stickers/keyword/:keyword', (req, res) => {
     stickerService
         .getByKeyword(req.params.keyword)
         .then((sticker) => {
@@ -59,31 +56,59 @@ app.get('/api/stickers/:keyword', (req, res) => {
             };
         })
         .catch((error) => {
-            return badRequest(res, error.message.message);
+            return badRequest(res, error.statusMessage);
         });
 });
 
-app.post('/api/stickers', ExpressJoi(stickerSchema), (req, res) => {
-    imageService
-        .upload(req.body.url)
-        .then((imageUrl) => {
-            if (!imageUrl) {
-                return badRequest(res, 'Invalid image url');
+app.get('/api/stickers/search', (req, res) => {
+    const query = req.query.keyword;
+    const minCharacterLength = 2;
+    if(!query || query.length < minCharacterLength) {
+        return badRequest(res, `Please provide a search query with a minimum of ${minCharacterLength} characters.`);
+    }
+
+    stickerService
+        .getAll()
+        .then((stickers) => {
+            const result = stickers.filter(sticker => sticker.keyword.includes(query));
+            if (!result || result.length === 0) {
+                return notFound(res, query);
             }
 
-            return stickerService.add(req.body.keyword, imageUrl, req.body.upload.id, req.body.upload.username);
-        })    
-        .then((sticker) => {
-            return created(res, sticker);
+            return okResult(res, result.map(s => parseSticker(s)));
         })
         .catch((error) => {
-            return badRequest(res, error.message.message);
+            return badRequest(res, error.statusMessage);
+        })
+});
+
+app.post('/api/stickers', ExpressJoi(stickerSchema), (req, res) => {
+    stickerService
+        .getAll()
+        .then((stickers) => {
+            const sticker = stickers.find(s => s.keyword === req.body.keyword);
+            if (sticker) {
+                throw new Error(`Keyword ${req.body.keyword} is already taken.`);
+            }
+            return stickerService.add(req.body.keyword, req.body.url, req.body.upload.id, req.body.upload.username);
+        })
+        .then((sticker) => {
+            return created(res, parseSticker(sticker));
+        })
+        .catch((error) => {
+            return badRequest(res, error.statusMessage);
         });
 });
 
 app.put('/api/stickers/:id', ExpressJoi(stickerSchema), (req, res) => {
     stickerService
-        .update(req.params.id, req.body)
+        .getByKeyword(req.body.keyword)
+        .then((sticker) => {
+            if (sticker && sticker.id !== req.params.id) {
+                return badRequest(res, `Keyword ${req.body.keyword} is not found.`)
+            }
+            return stickerService.update(req.params.id, req.body);
+        })
         .then((sticker) => {
             if (sticker) {
                 return okResult(res, parseSticker(sticker));
@@ -93,7 +118,7 @@ app.put('/api/stickers/:id', ExpressJoi(stickerSchema), (req, res) => {
             }
         })
         .catch((error) => {
-            return badRequest(res, error.message.message);
+            return badRequest(res, error.statusMessage || error.message);
         });
 });
 
@@ -102,17 +127,22 @@ app.delete('/api/stickers/:id', (req, res) => {
         .getById(req.params.id)
         .then((sticker) => {
             if (!sticker) {
-                return notFound(req.params.id);
+                return notFound(res, req.params.id);
             }
-            
             return stickerService.remove(req.params.id);
         })
         .then(() => {
             return res.status(204).send();
         })
         .catch((error) => {
-            return badRequest(res, error.message.message);
+            return badRequest(res, error.statusMessage);
         });
+});
+
+app.use(function (err, req, res, next) {
+    if (err.isBoom) {
+        return badRequest(res, err.data[0].message.toString());
+    }
 });
 
 function okResult (res, result) {
@@ -120,7 +150,7 @@ function okResult (res, result) {
 }
 
 function created (res, result) {
-    return res.status(204).json(responseResult.created(result));
+    return res.status(201).json(responseResult.created(result));
 }
 
 function badRequest (res, message) {
@@ -136,6 +166,7 @@ function parseSticker (sticker) {
         id: sticker._id,
         keyword: sticker.keyword,
         url: sticker.url,
+        buffer: sticker.buffer,
         useCount: sticker.useCount,
         upload: sticker.upload
     };

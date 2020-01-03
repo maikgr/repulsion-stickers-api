@@ -14,6 +14,7 @@ const stickerSchema = new Schema({
     keyword: String,
     url: String,
     useCount: Number,
+    buffer: Buffer,
     upload: {
         id: String,
         username: String,
@@ -23,19 +24,23 @@ const stickerSchema = new Schema({
 
 const Sticker = mongoose.model('stickers', stickerSchema);
 
-function getAll () {
+module.exports.getAll = function () {
     return Sticker.find().exec();
 }
 
-function getByKeyword (keyword) {
-    return Sticker.findOne({ keyword: keyword }).exec();
+module.exports.getByKeyword = function (keyword) {
+    return Sticker.findOne({ keyword: { '$regex': '^' + keyword + '$', '$options': 'i' } }).exec();
 }
 
-function getById (id) {
+module.exports.getById = function (id) {
     return Sticker.findById(id).exec();
 }
 
-function add (keyword, url, uploaderId, uploaderUsername) {
+module.exports.search = function (query) {
+    return Sticker.find({ keyword: { '$regex': query, '$options' : 'i'} }).exec();
+}
+
+module.exports.add = function (keyword, url, uploaderId, uploaderUsername) {
     let newSticker = new Sticker({
         keyword: keyword,
         url: url,
@@ -47,49 +52,25 @@ function add (keyword, url, uploaderId, uploaderUsername) {
         }
     });
 
-    return newSticker.save((err) => {
+    newSticker.save((err) => {
         if (err) throw err;
-        return newSticker;
     })
+
+    return newSticker;
 }
 
-function update (id, sticker) {
+module.exports.update = function (id, sticker) {
     return Sticker.findByIdAndUpdate(id, {
         keyword: sticker.keyword,
         url: sticker.url,
         useCount: sticker.useCount,
+        buffer: sticker.buffer,
         upload: sticker.upload
     }, {
         new: true
     }).exec();
 }
 
-function updateKeyword (oldKeyword, newKeyword) {
-    return Sticker.findOneAndUpdate({ keyword: oldKeyword }, { keyword: newKeyword }).exec();
-}
-
-function updateImage (keyword, url) {
-    return Sticker.findOneAndUpdate({ keyword: keyword }, { url: url }).exec();
-}
-
-function updateUseCount (keyword, addCount = 1) {
-    return getByKeyword(keyword).then((sticker) => {
-        return Sticker.findOneAndUpdate({ _id: sticker._id }, { useCount: sticker.useCount + addCount }).exec();
-    });
-}
-
-function remove (id) {
+module.exports.remove = function (id) {
     return Sticker.findByIdAndRemove(id).exec();
-}
-
-module.exports = {
-    getAll: getAll,
-    getByKeyword: getByKeyword,
-    getById: getById,
-    add: add,
-    update: update,
-    updateKeyword: updateKeyword,
-    updateImage: updateImage,
-    updateUseCount: updateUseCount,
-    remove: remove
 }
