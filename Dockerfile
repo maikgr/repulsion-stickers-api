@@ -8,8 +8,11 @@ WORKDIR /usr/src/api
 COPY package.json /usr/src/api
 RUN npm install
 
+# Add nodemon
+RUN npm install nodemon -g
+
 # Copy source files
 COPY . /usr/src/api
 
 # Start the api
-CMD ["node", "api.js"]
+CMD ["nodemon", "api.js"]
